@@ -1,17 +1,18 @@
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 
+import gzip
+from tempfile import mkstemp
+from os import fdopen
+from contextlib import closing
+import logging
+
 from flask import *
 from geoip2.errors import AddressNotFoundError
 from werkzeug.contrib.fixers import ProxyFix
 import geoip2.database
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
-import gzip
-from tempfile import mkstemp
-from os import fdopen
-from contextlib import closing
-import logging
 
 
 class GeoDatabase:
@@ -33,13 +34,14 @@ class GeoDatabase:
                 outfile = fdopen(outfile_fd, 'wb')
                 try:
                     outfile.write(gz.read())
-                    gz.close()
-                    outfile.close()
-                    download.close()
                     self.filename = outfile_name
                     logging.info('Succeeded in downloading new DB, at <%s>' % self.filename)
                 except IOError:
                     logging.exception('Ran into problems')
+                finally:
+                    if gz: gz.close()
+                    if outfile: outfile.close()
+                    if download: download.close()
 
     def upgrade_db(self):
         self.download_db()
