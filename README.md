@@ -6,6 +6,11 @@ Build:
 
     sudo docker build --rm -t mikaelhg/locations3-api .
 
+Test:
+
+    curl http://localhost:5000/address/212.149.203.35
+    curl -H "X-Forwarded-For: 212.149.203.35" http://localhost:5000/address/current
+
 Run:
      
     sudo docker run -it --rm -p 5000:5000 mikaelhg/locations3-api 
