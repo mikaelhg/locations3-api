@@ -17,8 +17,8 @@ import requests
 
 class GeoDatabase:
     def __init__(self):
-        self.filename = 'GeoLite2-City.mmdb'
         self.url = 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz'
+        self.filename = None
         self.reader = None
 
     def download_db(self):
@@ -50,9 +50,7 @@ class GeoDatabase:
         self.reader = geoip2.database.Reader(self.filename)
 
     def lookup(self, ip):
-        if not self.reader:
-            self.upgrade_db()
-        return db.reader.city(ip)
+        return self.reader.city(ip)
 
 
 logging.basicConfig(level=logging.INFO)
@@ -91,4 +89,5 @@ def by_ip(ip):
 
 
 if __name__ == "__main__":
+    db.upgrade_db()
     app.run(use_debugger=False, debug=True, use_reloader=True, host='0.0.0.0')
