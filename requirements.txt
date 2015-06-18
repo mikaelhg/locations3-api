@@ -1,0 +1,7 @@
+Flask
+uwsgi
+geoip2
+werkzeug
+apscheduler
+requests
+
