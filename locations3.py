@@ -3,7 +3,7 @@
 
 import gzip
 from tempfile import mkstemp
-from os import fdopen
+from os import fdopen, environ
 from contextlib import closing
 import logging
 
@@ -15,7 +15,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 
 
-class GeoDatabase:
+class GeoDatabase(object):
     def __init__(self):
         self.url = 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz'
         self.filename = None
@@ -56,6 +56,8 @@ class GeoDatabase:
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
+if 'APP_SETTINGS' in environ:
+    app.config.from_envvar('APP_SETTINGS')
 db = GeoDatabase()
 
 
@@ -67,13 +69,6 @@ def model_for_ip(ip):
         return None
     except ValueError:
         return None
-
-
-@app.before_first_request
-def initialize():
-    scheduler = BackgroundScheduler()
-    scheduler.start()
-    scheduler.add_job(db.upgrade_db, 'interval', hours=6)
 
 
 @app.route('/address/<ip>')
@@ -89,5 +84,12 @@ def by_ip(ip):
 
 
 if __name__ == "__main__":
+    scheduler = BackgroundScheduler()
+    scheduler.start()
+    if 'UPDATE_HOURS' in environ:
+        hours = int(environ['UPDATE_HOURS'])
+    else:
+        hours = 24
+    scheduler.add_job(db.upgrade_db, 'interval', hours=hours)
     db.upgrade_db()
-    app.run(use_debugger=False, debug=True, use_reloader=True, host='0.0.0.0')
+    app.run(host='0.0.0.0', processes=4)

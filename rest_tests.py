@@ -18,4 +18,5 @@ class LocationsTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    locations3.db.upgrade_db()
     unittest.main()

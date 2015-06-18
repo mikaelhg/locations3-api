@@ -15,16 +15,16 @@ Run:
      
     sudo docker run -it --rm -p 5000:5000 mikaelhg/locations3-api 
 
-Run in production with uwsgi:
+Run with DB update interval of 6 hours:
      
-    sudo docker run -it --rm -p 5000:5000 mikaelhg/locations3-api uwsgi --http :5000 -w locations3:app
+    sudo docker run -it --rm -p 5000:5000 -e UPDATE_HOURS=6 mikaelhg/locations3-api 
 
 When developing locally, just create a python virtualenv, run `pip install -r requirements.txt`,
 and execute `locations3.py` for the application, or `rest_tests.py` for the functional tests.
 
 You can also run the unit tests in the Docker container:
 
-    sudo docker run -it --rm mikaelhg/locations3-api python rests_tests.py
+    sudo docker run -it --rm mikaelhg/locations3-api python rest_tests.py
 
 This product includes GeoLite2 data created by MaxMind, available from
 <a href="http://www.maxmind.com">http://www.maxmind.com</a>.
