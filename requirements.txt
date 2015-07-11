@@ -3,4 +3,4 @@ geoip2
 werkzeug
 apscheduler
 requests
-
+colorlog

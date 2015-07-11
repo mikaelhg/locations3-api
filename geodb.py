@@ -5,19 +5,22 @@ import gzip
 from tempfile import mkstemp
 from os import fdopen
 from contextlib import closing
+from geoip2.errors import AddressNotFoundError
 import logging
 import geoip2.database
 import requests
 
 class GeoDatabase(object):
     def __init__(self):
-        self.url = 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz'
-        self.filename = None
-        self.reader = None
+        self.__url = 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz'
+        self.__filename = None
+        self.__reader = None
+        self.__logger = logging.getLogger("app.geodb")
+        self.upgrade_db()
 
-    def download_db(self):
-        logging.info('Downloading DB')
-        with closing(requests.get(self.url, stream=True)) as req:
+    def __download_db(self):
+        self.__logger.info('Downloading DB')
+        with closing(requests.get(self.__url, stream=True)) as req:
             if req.status_code == 200:
                 (download_fd, download_name) = mkstemp(prefix='GeoLite2-City.', suffix='.mmdb.gz')
                 download = fdopen(download_fd, 'w+b')
@@ -28,20 +31,27 @@ class GeoDatabase(object):
                 outfile = fdopen(outfile_fd, 'wb')
                 try:
                     outfile.write(gz.read())
-                    self.filename = outfile_name
-                    logging.info('Succeeded in downloading new DB, at <%s>' % self.filename)
+                    self.__filename = outfile_name
+                    self.__logger.info('Succeeded in downloading new DB, at <%s>' % self.__filename)
                 except IOError:
-                    logging.exception('Ran into problems')
+                    self.__logger.exception('Ran into problems')
                 finally:
                     if gz: gz.close()
                     if outfile: outfile.close()
                     if download: download.close()
 
     def upgrade_db(self):
-        self.download_db()
-        if self.reader:
-            self.reader.close()
-        self.reader = geoip2.database.Reader(self.filename)
+        self.__download_db()
+        if self.__reader:
+            self.__reader.close()
+        self.__reader = geoip2.database.Reader(self.__filename)
 
     def lookup(self, ip):
-        return self.reader.city(ip)
+        try:
+            city = self.__reader.city(ip)
+            return {'country_code': city.country.iso_code, 'continent': city.continent.code}
+        except AddressNotFoundError:
+            return None
+        except ValueError:
+            return None
+
