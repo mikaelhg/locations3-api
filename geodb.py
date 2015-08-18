@@ -9,6 +9,8 @@ from geoip2.errors import AddressNotFoundError
 import logging
 import geoip2.database
 import requests
+from struct import *
+import socket
 
 class GeoDatabase(object):
     def __init__(self):
@@ -55,3 +57,48 @@ class GeoDatabase(object):
         except ValueError:
             return None
 
+class EdgeDatabase(object):
+    def __init__(self, host='localhost', port=2001):
+        self.__host = host
+        self.__port = port
+        self.__number = 1
+        self.__logger = logging.getLogger("app.edgedb")
+
+    def upgrade_db(self):
+        pass
+
+    @staticmethod
+    def __request(number, ip):
+        return pack('BBHHBB1015sB', 3, 0, number, 1024, 0, 0, str(ip), 0)
+
+#    @staticmethod
+    def __response(self, datagram, number, ip):
+        response_format = 'BBHHBB%is%is' % (len(ip), len(datagram) - len(ip) - 8)
+        (version, flags, r_number, length, r_error, reserved, r_ip, mapdata) = unpack(response_format, datagram)
+        self.__logger.info('Error <%s>' % r_error)
+        if number != r_number or r_error != 0 or ip != r_ip:
+            return None
+        return {k: v for (k, v) in [e.split('=') for e in mapdata.split('\x00')]}
+
+    def __query(self, number, ip):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            sock.connect((self.__host, self.__port))
+            request = self.__request(number, ip)
+            buf = bytearray(1024)
+            view = memoryview(buf)
+            self.__logger.info('Request <%s>' % request)
+            sock.send(request)
+            data, addr = sock.recv_into(1024)
+            self.__logger.info('Received data <%s>' % data)
+        except socket.error:
+            self.__logger.exception('Failed with UDP socket')
+            return None
+        finally:
+            sock.close()
+        return self.__response(data, number, ip)
+
+    def lookup(self, ip):
+        self.__logger.info('Looking up IP <%s>' % ip)
+        self.__number += 1
+        return self.__query(self.__number, ip)
