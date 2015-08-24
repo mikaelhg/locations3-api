@@ -61,36 +61,38 @@ class EdgeDatabase(object):
     def __init__(self, host='localhost', port=2001):
         self.__host = host
         self.__port = port
-        self.__number = 1
+        self.__number = 0
         self.__logger = logging.getLogger("app.edgedb")
 
     def upgrade_db(self):
         pass
 
-    @staticmethod
-    def __request(number, ip):
-        return pack('BBHHBB1015sB', 3, 0, number, 1024, 0, 0, str(ip), 0)
+    @classmethod
+    def __splitmap(cls, mapdata):
+        for e in mapdata.split('\x00'):
+            if '=' in e:
+                yield e.split('=')
 
-#    @staticmethod
-    def __response(self, datagram, number, ip):
-        response_format = 'BBHHBB%is%is' % (len(ip), len(datagram) - len(ip) - 8)
-        (version, flags, r_number, length, r_error, reserved, r_ip, mapdata) = unpack(response_format, datagram)
-        self.__logger.info('Error <%s>' % r_error)
-        if number != r_number or r_error != 0 or ip != r_ip:
+    @classmethod
+    def __request(cls, number, ip):
+        fmt = '>BBHHBB%is' % (len(ip) + 1)
+        return pack(fmt, 3, 0, number, 2048, 0, 0, str(ip))
+
+    @classmethod
+    def __response(cls, data, num, ip):
+        fmt = '>BBHHBB%is%is' % (len(ip), len(data) - len(ip) - 8)
+        (version, flags, r_number, length, r_error, reserved, r_ip, mapdata) = unpack(fmt, data)
+        if num != r_number or r_error != 0 or ip != r_ip:
             return None
-        return {k: v for (k, v) in [e.split('=') for e in mapdata.split('\x00')]}
+        return {k: v for (k, v) in EdgeDatabase.__splitmap(mapdata)}
 
     def __query(self, number, ip):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             sock.connect((self.__host, self.__port))
             request = self.__request(number, ip)
-            buf = bytearray(1024)
-            view = memoryview(buf)
-            self.__logger.info('Request <%s>' % request)
             sock.send(request)
-            data, addr = sock.recv_into(1024)
-            self.__logger.info('Received data <%s>' % data)
+            data, addr = sock.recvfrom(1024)
         except socket.error:
             self.__logger.exception('Failed with UDP socket')
             return None
