@@ -5,14 +5,16 @@ from flask import *
 from werkzeug.contrib.fixers import ProxyFix
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from geodb import GeoDatabase
+from geodb import GeoDatabase, EdgeDatabase
 import conf
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 conf.configure_app(app)
-db = GeoDatabase()
-
+if conf.dbtype is 'maxmind':
+    db = GeoDatabase()
+else:
+    db = EdgeDatabase()
 
 @app.route('/address/<ip>')
 def location_for_ip(ip):

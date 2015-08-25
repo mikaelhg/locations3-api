@@ -5,6 +5,9 @@ from os import getenv
 import logging
 from colorlog import ColoredFormatter
 
+# Should we use MaxMind or EdgeScape
+dbtype = getenv('DB_TYPE', 'maxmind')
+
 # Update the DB every X hours
 hours = int(getenv('UPDATE_HOURS', '6'))
 
