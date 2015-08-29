@@ -13,6 +13,8 @@ from struct import *
 import socket
 
 class GeoDatabase(object):
+    """ A MaxMind GeoLite2 geolocation database updater and connector. """
+
     def __init__(self):
         self.__url = 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz'
         self.__filename = None
@@ -22,7 +24,8 @@ class GeoDatabase(object):
 
     def __download_db(self):
         self.__logger.info('Downloading DB')
-        with closing(requests.get(self.__url, stream=True)) as req:
+        headers = {'User-Agent': 'https://github.com/mikaelhg/locations3-api 1.0'}
+        with closing(requests.get(self.__url, headers=headers, stream=True)) as req:
             if req.status_code == 200:
                 (download_fd, download_name) = mkstemp(prefix='GeoLite2-City.', suffix='.mmdb.gz')
                 download = fdopen(download_fd, 'w+b')
@@ -58,6 +61,8 @@ class GeoDatabase(object):
             return None
 
 class EdgeDatabase(object):
+    """ An Akamai EdgeScape geolocation server connector. """
+
     def __init__(self, host='localhost', port=2001):
         self.__host = host
         self.__port = port
@@ -101,6 +106,5 @@ class EdgeDatabase(object):
         return self.__response(data, number, ip)
 
     def lookup(self, ip):
-        self.__logger.info('Looking up IP <%s>' % ip)
         self.__number += 1
         return self.__query(self.__number, ip)
