@@ -8,8 +8,8 @@ Build:
 
 Test:
 
-    curl http://localhost:5000/address/212.149.203.35
-    curl -H "X-Forwarded-For: 212.149.203.35" http://localhost:5000/address/current
+    curl http://localhost:5000/address/8.8.8.8
+    curl -H "X-Forwarded-For: 8.8.8.8" http://localhost:5000/address/current
 
 Run:
      
